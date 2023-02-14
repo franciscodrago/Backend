@@ -20,9 +20,7 @@ class ProductManager{
 
     async getIDs(){
         let products = await this.getProducts()
-        // Genero un array con todos los id's.
         let ids = products.map( prods => prods.id)
-        // Saco el id mayor y lo retorno.
         let mayorID = Math.max(...ids)
         if (mayorID === -Infinity) {
             return 0
