@@ -1,11 +1,41 @@
-class ProductManager{
-    
-    products = [];
+const fs = require("fs")
 
-    constructor(){}
+class ProductManager{
+   
+#path = ":/products.json";
+
+
+    constructor(path){
+        this.#path = path;
+    }
+
+    async getProducts(){
+        try{
+            const products = await fs.promises.readFile(this.#path, "utf-8")
+            return JSON.parse(products)
+        }catch{
+            return []
+        }
+    }
+
+    async getIDs(){
+        let products = await this.getProducts()
+        // Genero un array con todos los id's.
+        let ids = products.map( prods => prods.id)
+        // Saco el id mayor y lo retorno.
+        let mayorID = Math.max(...ids)
+        if (mayorID === -Infinity) {
+            return 0
+        } else {
+            return mayorID
+        }
+    }
+    
      
-       addProduct(title, description, price, thumbail, code, stock){
-        if(typeof title !== undefined && typeof description !== undefined && typeof price !== undefined && typeof thumbnail !== undefined && typeof code !== undefined && typeof stock !== undefined ){
+        async addProduct(title, description, price, thumbail, code, stock){
+       
+            let mayorID = await this.getIDs()
+
     const product = {
         title,
         description,
@@ -13,43 +43,78 @@ class ProductManager{
         thumbail,
         code,
         stock,
-        id : this.products.length
+        id : ++mayorID
     }
 
+
+    let products = await this.getProducts()
     let verificar = Object.values(product)
-    let sameCode = this.products.find( prod => prod.code === code)
+    let sameCode = products.find( prod => prod.code === code)
 
-    if (verificar.includes(undefined) === true){
-        console.log(`El producto ${product.title} NO ha sido cargado, debe completar todos los datos.`)
-    }else if(sameCode){
-        console.log(`El producto ${product.title} NO ha sido cargado ya que la propiedad "code" está repetida, ${sameCode.title} tiene el mismo valor.`)
-    }else{
-        this.products.push(product)
+    if (verificar.includes(undefined)){
+        throw new Error(`El producto ${product.title} NO ha sido cargado, debe completar todos los datos.`)
+    }
+     if(sameCode){
+        throw new Error(`El producto ${product.title} NO ha sido cargado ya que la propiedad "code" está repetida, ${sameCode.title} tiene el mismo valor.`)
+    }
+    products = [...products, product]
         console.log(`${product.title} cargado correctamente.`)
+        await fs.promises.writeFile(this.#path, JSON.stringify(products))
     }
-    
+
+    async updateProduct(id, propModify){
+        let products = await this.getProducts()
+        let productModify = products.find(i => i.id === id)
+
+        if (!productModify){
+            throw new Error('No se encontró ningún producto con ese ID.')
+        }
+
+        if (Object.keys(propModify).includes('id')){
+            throw new Error('No es posible modificar el ID de un producto.')
+        }
+
+        if (Object.keys(propModify).includes('code')){
+            let sameCode = products.some(i => i.code === propModify.code)
+            if (sameCode){
+                throw new Error('No es posible modificar la propiedad code por una que ya exista.')
+            }
+        }
+
+        productModify = {...productModify, ...propModify}
+        let newArray = products.filter( prods => prods.id !== id)
+        newArray = [...newArray, productModify]
+        await fs.promises.writeFile(this.#path, JSON.stringify(newArray))
+        console.log('Modificación realizada con éxito.')
     }
 
-    
-}
+    async getProductById(id){
+        let products = await this.getProducts()
+        let element = products.find(elem => elem.id === id)
+        if (element){
+            return element
+        } else {
+            throw new Error('No se encuentra producto con ese ID.')
+        }
+    }
 
-getProducts(){
-    return this.products
-}
-
-
-getProductById(id){
-    let element = this.products.find(prod => prod.id === id)
-    if (element){
-        return element
-    } else {
-        return "Not Found"
+    async deleteProduct(id){
+        let products = await this.getProducts()
+        let newArray = products.filter(prods => prods.id !== id)
+        await fs.promises.writeFile(this.#path, JSON.stringify(newArray))
+        console.log('Producto eliminado con éxito')
     }
 }
-}
-const manager = new ProductManager();
 
-manager.addProduct("Remera roja", "Descripcion de remera" , 12000, "ruta de imagen", 0, 10)
-manager.addProduct("Remera Azul", "Descripcion de remera", 33000, "ruta de imagen", 1, 15)
-manager.addProduct("Remera Amarilla", "descripcion de remera", 19000, "ruta de imagen",2,7)
-console.log(manager.getProductById())
+async function main(){
+
+    const manager = new ProductManager('./products.json')
+
+    const products = await manager.getProducts();
+
+
+}
+
+main()
+
+
