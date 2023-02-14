@@ -95,14 +95,20 @@ class ProductManager{
             throw new Error('No se encuentra producto con ese ID.')
         }
     }
-
-    async deleteProduct(id){
+   async deleteProduct(id){
         let products = await this.getProducts()
+        let check = products.some(prod => prod.id === id)
+        
+        if (!check){
+            throw new Error('No existe producto con ese ID.')
+        }
+
         let newArray = products.filter(prods => prods.id !== id)
         await fs.promises.writeFile(this.#path, JSON.stringify(newArray))
         console.log('Producto eliminado con éxito')
     }
 }
+
 
 async function main(){
 
